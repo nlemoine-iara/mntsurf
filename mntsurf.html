@@ -581,8 +581,8 @@ display: none;
 
 <div id="installation-et-chargement-des-packages" class="section level2">
 <h2>Installation et chargement des packages</h2>
-<p>Ce chunk <strong>ne réinstalle pas</strong> les packages mais vérifie
-qu’ils sont installés et les charge.</p>
+<p>Chunk de vérification des packages installés (<strong>ne réinstalle
+pas</strong> si manquants)</p>
 <pre class="r"><code># Liste des packages nécessaires
 packages &lt;- c(&quot;hubeau&quot;, &quot;httr&quot;, &quot;sf&quot;, &quot;dplyr&quot;, &quot;ggplot2&quot;, &quot;tictoc&quot;, &quot;knitr&quot;, &quot;kableExtra&quot;)
 
@@ -1719,7 +1719,7 @@ requete = sprintf(&#39;https://wps.geosas.fr/mntsurf/?service=wps&amp;request=Ex
 }
 
 toc()</code></pre>
-<pre><code>## Extraction des 75 BV: 136.882 sec elapsed</code></pre>
+<pre><code>## Extraction des 75 BV: 147.402 sec elapsed</code></pre>
 <pre class="r"><code>contourBV_tous$code_site &lt;- liste_sites$code_site
 contourBV_tous$libelle_site &lt;- liste_sites$libelle_site
 write_sf(contourBV_tous,&quot;vector/BV_stations.gpkg&quot;)</code></pre>
