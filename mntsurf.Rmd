@@ -1,0 +1,96 @@
+---
+title: "demo mntsurf"
+output:
+  html_document:
+    fig_caption: true
+date: "2026-02-02"
+---
+
+## Installation et chargement des packages
+
+Chunk de vérification des packages installés (**ne réinstalle pas** si manquants)
+
+```{r setup, message=FALSE, warning=FALSE}
+# Liste des packages nécessaires
+packages <- c("hubeau", "httr", "sf", "dplyr", "ggplot2", "tictoc", "knitr", "kableExtra")
+
+# Vérifier que tous sont installés
+missing_pkgs <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(missing_pkgs) > 0){
+  stop("Il manque des packages : ", paste(missing_pkgs, collapse = ", "),
+       ". Installez-les avant de lancer ce Rmd.")
+}
+
+# Charger les packages
+invisible(lapply(packages, library, character.only = TRUE))
+
+# Options globales pour les chunks
+knitr::opts_chunk$set(
+  fig.path = "figures/",  # toutes les figures iront dans ce sous-dossier
+  fig.width = 8,
+  fig.height = 6,
+  dev = "png",            # format des figures
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+## Récupération de la liste des sites hydro
+
+```{r liste-sites}
+liste_sites <- data.frame()
+
+for (pattern in c("J7*","J8*","J9*"))
+{
+  liste_sites <- rbind(liste_sites,
+                       get_hydrometrie_sites(code_site=pattern, unique_site = TRUE))    
+}
+
+liste_sites <- liste_sites %>% filter(type_site == "STANDARD")
+liste_sites %>% 
+  select(code_site,libelle_site,coordonnee_x_site,coordonnee_y_site) %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = TRUE)
+
+sf_sites <- st_as_sf(liste_sites, 
+                     coords = c("coordonnee_x_site", "coordonnee_y_site"),
+                     crs = 2154)
+```
+
+## Extraction des contours de BV
+
+```{r extract-bv}
+contourBV_tous <- st_sf(st_sfc())
+st_crs(contourBV_tous) <- 2154
+
+tic(sprintf("Extraction des %d BV",nrow(liste_sites)))   # démarre le chrono
+
+for(i in 1:nrow(liste_sites)){
+  code_site <- liste_sites[i,]$code_site 
+  #message(code_site)
+  dest <- paste0("vector/",code_site,".gml")
+  if(!file.exists(dest))
+  {
+requete = sprintf('https://wps.geosas.fr/mntsurf/?service=wps&request=Execute&identifier=xy2watershed&version=1.0.0&datainputs=X=%.1f;Y=%.1f;MNT=Bretagne%%2025m&rawdataoutput=bvOut',
+                      liste_sites[i,]$coordonnee_x_site,
+                      liste_sites[i,]$coordonnee_y_site)
+    GET(requete,write_disk(dest,overwrite = TRUE))
+  }
+  contour <- read_sf(dest)
+  contourBV_tous <- rbind(contourBV_tous,contour)
+}
+
+toc()
+contourBV_tous$code_site <- liste_sites$code_site
+contourBV_tous$libelle_site <- liste_sites$libelle_site
+write_sf(contourBV_tous,"vector/BV_stations.gpkg")
+```
+
+## Plot
+
+```{r plot}
+ggplot() + 
+geom_sf(data=contourBV_tous,fill=NA) +
+geom_sf(data=sf_sites)
+```
